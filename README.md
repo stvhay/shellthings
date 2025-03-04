@@ -25,6 +25,8 @@ $ secret rm key
 
 ### Python
 
+Use in a Python program.
+
 ```python
 import secret
 
@@ -32,4 +34,13 @@ vault = secret.SecretVault()
 vault.set("key")
 vault.get("key")
 vault.rm("key")
+```
+
+Install as a script.
+
+```
+$ uv sync
+
+$ printf "Secret key: %s\n" "$(secret get key)"
+Secret key: hi there
 ```
