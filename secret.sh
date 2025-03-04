@@ -1,3 +1,5 @@
+# Uses GPG to make an encryption key for a simple vault. Commands 'set', 'get',
+# and 'rm' are supported. Key values are hashed with an encrypted salt.
 secret()
 (
     secrets_dir="$HOME"/.secrets
@@ -54,13 +56,16 @@ secret()
                 read -r -s -p "Enter secret value: " secret
                 printf "%s" "$secret" | encrypt "$keyfile"
                 ;;
+            rm)
+                rm -f "$keyfile"
+                ;;
             *)
                 >&2 echo "Invalid command: $1"
                 exit 1
                 ;;
         esac
     else
-        >&2 echo "Usage: $0 set|get key"
+        >&2 echo "Usage: $0 set|get|rm key"
         exit 1
     fi    
 )
