@@ -9,18 +9,21 @@ secret()
     encrypt() { gpg --quiet --encrypt --recipient "$(email)" --output "$1"; }
     decrypt() { gpg --quiet --decrypt "$1"; }
     hash()    { printf "%s" "$1" | openssl dgst -sha512 | awk '{print $2}'; }
+    expiry()  { date -d "+2 years" +%Y-%m-%d; }
 
+    # Generate GPG key if it doesn't exist.
     genkey()
     { 
         if ! gpg --list-keys | grep --quiet "$(email)"
         then
             local fingerprint
-            gpg --batch --quick-generate-key "$(name) <$(email)>" rsa4096 default 0
+            gpg --batch --quick-generate-key "$(name) <$(email)>" rsa4096 default "$(expiry)"
             fingerprint=$(gpg --list-secret-keys --with-colons "$(email)" | grep '^fpr' | head -n1 | awk -F: '/^fpr/ {print $10}' )
-            gpg --batch --quick-add-key "$fingerprint" rsa4096 encrypt 0
+            gpg --batch --quick-add-key "$fingerprint" rsa4096 encrypt "$(expiry)"
         fi
     }
 
+    # Get or generate salt for key derivation.
     salt() 
     {
         local saltfile="${secrets_dir}/salt"
@@ -37,7 +40,7 @@ secret()
         chmod 700 "$secrets_dir"
         genkey
     }
-    
+
     initialize
     if [ $# -eq 2 ]
     then
