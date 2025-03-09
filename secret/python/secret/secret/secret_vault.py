@@ -30,18 +30,22 @@ class SecretVault:
         self._genkey()
 
     def _pbkdf(self, data, salt, iterations=100000):
-        """Generate a secure hash using PBKDF2 with SHA-256."""
-        return hashlib.pbkdf2_hmac(
-            "sha256", 
-            data.encode("utf-8"), 
-            salt.encode("utf-8"), 
-            iterations
-        ).hex()
+        """Generate a secure hash using PBKDF2 with SHA-384."""
+        return (
+            hashlib.pbkdf2_hmac(
+                "sha384", data.encode("utf-8"), salt.encode("utf-8"), iterations
+            )
+            .hex()
+            .lower()
+        )
 
     def _encrypt(self, data, output_file):
         """Encrypt data and save to output file."""
         encrypted_data = self._gpg.encrypt(
-            data, recipients=[self._email], output=output_file
+            data,
+            recipients=[self._email],
+            output=output_file,
+            extra_args=["--cipher-algo", "AES256"],
         )
         if not encrypted_data.ok:
             raise SecretVaultError(f"Encryption failed: {encrypted_data.status}")

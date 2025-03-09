@@ -6,15 +6,15 @@ secret()
 
     name()    { printf "%s" "$(whoami)"; }
     email()   { printf "%s" "secret@$(hostname -d)"; }
-    encrypt() { gpg --quiet --encrypt --recipient "$(email)" --output "$1"; }
+    encrypt() { gpg --quiet --encrypt --cipher-algo AES256 --recipient "$(email)" --output "$1"; }
     decrypt() { gpg --quiet --decrypt "$1"; }
     pbkdf() {
-        openssl kdf -keylen 32 \
-            -kdfopt digest:SHA256 \
+        openssl kdf -keylen 48 \
+            -kdfopt digest:SHA384 \
             -kdfopt pass:"$1" \
             -kdfopt salt:"$2" \
             -kdfopt iter:"100000" \
-            PBKDF2 | tr -d :
+            PBKDF2 | tr -d : | tr '[:upper:]' '[:lower:]'
     }
     expiry()  { date -d "+2 years" +%Y-%m-%d; }
 
