@@ -2,7 +2,7 @@ import argparse
 import getpass
 import sys
 
-from .secret_vault import SecretVault
+from .secret_vault import SecretVault, SecretVaultError
 
 
 def main():
@@ -24,10 +24,10 @@ def main():
         if command == "get":
             secret = vault.get(key)
             print(secret, end="")
-        elif args.action == "set":
-            value = getpass("Enter secret value: ")
+        elif command == "set":
+            value = getpass.getpass("Enter secret value: ")
             vault.set(args.key, value)
-        elif args.action == "rm":
+        elif command == "rm":
             vault.rm(args.key)
     except (KeyError, SecretVaultError) as e:
         print(str(e), file=sys.stderr)

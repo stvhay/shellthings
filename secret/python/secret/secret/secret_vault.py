@@ -26,12 +26,17 @@ class SecretVault:
         fqdn = socket.getfqdn().split(".", 1)[1]
         self._email = f"secret@{fqdn}"
         self._gpg = gnupg.GPG()
-        self._genkey()
         self._name = os.getlogin()
+        self._genkey()
 
-    def _hash(self, data):
-        """Generate a hash of the input data."""
-        return hashlib.sha512(data.encode()).hexdigest()
+    def _pbkdf(self, data, salt, iterations=100000):
+        """Generate a secure hash using PBKDF2 with SHA-256."""
+        return hashlib.pbkdf2_hmac(
+            "sha256", 
+            data.encode("utf-8"), 
+            salt.encode("utf-8"), 
+            iterations
+        ).hex()
 
     def _encrypt(self, data, output_file):
         """Encrypt data and save to output file."""
@@ -39,14 +44,14 @@ class SecretVault:
             data, recipients=[self._email], output=output_file
         )
         if not encrypted_data.ok:
-            raise SecretVaultError("Encryption failed")
+            raise SecretVaultError(f"Encryption failed: {encrypted_data.status}")
 
     def _decrypt(self, input_file):
         """Decrypt data from input file."""
         with open(input_file, "rb") as f:
             decrypted_data = self._gpg.decrypt_file(f)
         if not decrypted_data.ok:
-            raise SecretVaultError("Decryption failed")
+            raise SecretVaultError(f"Decryption failed: {decrypted_data.status}")
         return str(decrypted_data)
 
     def _expiry(self):
@@ -66,10 +71,9 @@ class SecretVault:
                 key_length=4096,
                 subkey_type="RSA",
                 subkey_length=4096,
-                expire_date=expires,
+                expire_date="2y",
             )
             key = self._gpg.gen_key(input_data)
-            self.gpg.add_subkey(key.fingerprint, "RSA", 4096, "encrypt", expire=expires)
 
     def _salt(self):
         """Get or generate salt for key derivation."""
@@ -80,8 +84,8 @@ class SecretVault:
 
     def _keyfile(self, key):
         """Generate a keyfile path for a given key."""
-        key_salt = key + self._salt()
-        filename = f"{self._hash(key_salt)}.gpg"
+        p_hash = self._pbkdf(key, self._salt())
+        filename = f"{p_hash}.gpg"
         return os.path.join(self._secrets_dir, filename)
 
     def get(self, key):
@@ -95,7 +99,7 @@ class SecretVault:
     def set(self, key, value):
         """Set a secret value for a given key."""
         keyfile = self._keyfile(key)
-        self.encrypt(value, keyfile)
+        self._encrypt(value, keyfile)
 
     def rm(self, key):
         """Remove a secret for a given key."""

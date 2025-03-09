@@ -8,7 +8,14 @@ secret()
     email()   { printf "%s" "secret@$(hostname -d)"; }
     encrypt() { gpg --quiet --encrypt --recipient "$(email)" --output "$1"; }
     decrypt() { gpg --quiet --decrypt "$1"; }
-    hash()    { printf "%s" "$1" | openssl dgst -sha512 | awk '{print $2}'; }
+    pbkdf() {
+        openssl kdf -keylen 32 \
+            -kdfopt digest:SHA256 \
+            -kdfopt pass:"$1" \
+            -kdfopt salt:"$2" \
+            -kdfopt iter:"100000" \
+            PBKDF2 | tr -d :
+    }
     expiry()  { date -d "+2 years" +%Y-%m-%d; }
 
     # Generate GPG key if it doesn't exist.
@@ -44,7 +51,7 @@ secret()
     initialize
     if [ $# -eq 2 ]
     then
-        keyfile="${secrets_dir}/$(hash "$2$(salt)").gpg"
+        keyfile="${secrets_dir}/$(pbkdf "$2" "$(salt)").gpg"
         case "$1" in
             get)
                 if [[ -f "$keyfile" ]]
